@@ -6,6 +6,7 @@
 #include <stdint.h>
 #include "limits"
 #include <omp.h>
+#include <math.h>
 
 using namespace std;
 using glm::vec3;
@@ -40,7 +41,7 @@ int main( int argc, char* argv[] )
   LoadTestModel( triangles );
   vec4 cameraPos( 0, 0, -2, 1.0);
   float yaw = 0.0; // store the angle of the angle.
-  vec4 ()
+
   mat4 R;
   screen *screen = InitializeSDL( SCREEN_WIDTH, SCREEN_HEIGHT, FULLSCREEN_MODE );
   int a = 0;
@@ -157,4 +158,23 @@ bool ClosestIntersection(vec4 start,vec4 dir,const vector<Triangle>& triangles,I
     }
   }
   return checkDistance;
+}
+
+vec3 DirectLight( const Intersection& i, const vector<Triangle>& triangles){
+  vec4 lightPos( 0, -0.5, -0.7, 1.0 );
+  vec3 lightColor = 14.f * vec3( 1, 1, 1 );
+  float r; 
+  // r = pow(lightPos[0] - i.position[0], 2);
+  r = sqrt(pow(lightPos[0] - i.position[0], 2) + pow(lightPos[1] - i.position[1], 2) + pow(lightPos[2] - i.position[2], 2));
+  float A;
+  A = 4 * M_PI * pow(r, 2);
+  vec3 B;
+  B = lightColor / A;
+  vec4 nh, rh;
+  nh = triangles[i. triangleIndex]. normal;
+  rh = i.position - lightPos;
+
+  vec3 D;
+  D
+  return lightColor;
 }
