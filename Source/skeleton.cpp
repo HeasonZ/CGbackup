@@ -5,21 +5,13 @@
 #include "TestModelH.h"
 #include <stdint.h>
 #include "limits"
-#include <omp.h>
-#include <math.h>
+#include "light.h"
 
 using namespace std;
 using glm::vec3;
 using glm::mat3;
 using glm::vec4;
 using glm::mat4;
-
-struct Intersection
-{
-  vec4 position;
-  float distance;
-  int triangleIndex;
-} closestIntersection;
 
 #define SCREEN_WIDTH 320
 #define SCREEN_HEIGHT 256
@@ -28,8 +20,8 @@ struct Intersection
 /* ----------------------------------------------------------------------------*/
 /* FUNCTIONS                                                                   */
 
-void Update(vec4 &cameraPos, float &yaw, mat4 &R);
-void Draw(screen* screen, const vector<Triangle>& triangles, Intersection& closestIntersection, vec4 &cameraPos, mat4 &R);
+void Update(vec4 &cameraPos, float &yaw, mat3 &R);
+void Draw(screen* screen, const vector<Triangle>& triangles, Intersection& closestIntersection, vec4 &cameraPos, mat3 &R);
 bool ClosestIntersection(vec4 start,
   vec4 dir,
   const vector<Triangle>& triangles,
@@ -37,18 +29,17 @@ bool ClosestIntersection(vec4 start,
 
 int main( int argc, char* argv[] )
 {
+  Intersection closestIntersection;
   vector<Triangle> triangles;
   LoadTestModel( triangles );
   vec4 cameraPos( 0, 0, -2, 1.0);
   float yaw = 0.0; // store the angle of the angle.
-
-  mat4 R;
+  mat3 R;
   screen *screen = InitializeSDL( SCREEN_WIDTH, SCREEN_HEIGHT, FULLSCREEN_MODE );
   int a = 0;
   while( NoQuitMessageSDL() )
     {
       // cameraPos.z = cameraPos.z + 0.01;
-
       Update(cameraPos, yaw, R);
       std::cout << "------------ " << a << std::endl;
       Draw(screen, triangles, closestIntersection, cameraPos, R);
@@ -62,7 +53,7 @@ int main( int argc, char* argv[] )
 }
 
 /*Place your drawing here*/
-void Draw(screen* screen, const vector<Triangle>& triangles, Intersection& closestIntersection, vec4 &cameraPos, mat4 &R)
+void Draw(screen* screen, const vector<Triangle>& triangles, Intersection& closestIntersection, vec4 &cameraPos, mat3 &R)
 {
   /* Clear buffer */
   memset(screen->buffer, 0, screen->height*screen->width*sizeof(uint32_t));
@@ -71,10 +62,13 @@ void Draw(screen* screen, const vector<Triangle>& triangles, Intersection& close
   for(int x=0; x<SCREEN_WIDTH; x++){
     for(int y=0; y<SCREEN_HEIGHT; y++){
       vec4 direction(x-SCREEN_WIDTH/2, y-SCREEN_WIDTH/2, focalLength, 1);
-      direction = direction*R;
+      vec3 tmpDir(direction[0],direction[1],direction[2]);
+      tmpDir = tmpDir*R;
+      direction = vec4(tmpDir[0],tmpDir[1],tmpDir[2],1);
       bool validPixel = ClosestIntersection(cameraPos, direction, triangles, closestIntersection);
       if (validPixel){
-        vec3 colour(triangles[closestIntersection.triangleIndex].color);
+	vec3 D = DirectLight(closestIntersection,triangles[closestIntersection.triangleIndex].normal);
+        vec3 colour(triangles[closestIntersection.triangleIndex].color*D);
         PutPixelSDL(screen, x, y, colour);
       }
     }
@@ -83,14 +77,14 @@ void Draw(screen* screen, const vector<Triangle>& triangles, Intersection& close
 }
 
 /*Place updates of parameters here*/
-void Update(vec4 &cameraPos, float &yaw, mat4 &R)
+void Update(vec4 &cameraPos, float &yaw, mat3 &R)
 {
   static int t = SDL_GetTicks();
   /* Compute frame time */
   int t2 = SDL_GetTicks();
   float dt = float(t2-t);
   t = t2;
-  mat4 Rotation;
+  mat3 Rotation;
   /*Good idea to remove this*/
   std::cout << "Render time: " << dt << " ms." << std::endl;
   /* Update variables*/
@@ -106,18 +100,15 @@ void Update(vec4 &cameraPos, float &yaw, mat4 &R)
   if( keystate[SDL_SCANCODE_LEFT] )
   {
     yaw = yaw - 0.1;
-    Rotation = mat4(cos(yaw), 0.0f, sin(yaw), 1.0f, 
-      0.0f, 1.0f, 0.0f, 1.0f,
-      -sin(yaw), 0.0f, cos(yaw), 1.0f,
-      0.0f, 0.0f, 0.0f, 1.0f);
+    Rotation = mat3(cos(yaw), 0.0f, sin(yaw), 0.0f, 1.0f, 0.0f, -sin(yaw), 0.0f,
+                  cos(yaw));
     R = Rotation;
   }
   if( keystate[SDL_SCANCODE_RIGHT] )
   {
     yaw = yaw + 0.1;
-    Rotation = mat4(cos(yaw), 0.0f, sin(yaw),1.0f, 0.0f, 1.0f, 0.0f,1.0f, -sin(yaw), 0.0f,
-                  cos(yaw),1.0f,
-                  0.0f, 0.0f, 0.0f, 1.0f);
+    Rotation = mat3(cos(yaw), 0.0f, sin(yaw), 0.0f, 1.0f, 0.0f, -sin(yaw), 0.0f,
+                  cos(yaw));
     R = Rotation;
   }  
 
@@ -158,23 +149,4 @@ bool ClosestIntersection(vec4 start,vec4 dir,const vector<Triangle>& triangles,I
     }
   }
   return checkDistance;
-}
-
-vec3 DirectLight( const Intersection& i, const vector<Triangle>& triangles){
-  vec4 lightPos( 0, -0.5, -0.7, 1.0 );
-  vec3 lightColor = 14.f * vec3( 1, 1, 1 );
-  float r; 
-  // r = pow(lightPos[0] - i.position[0], 2);
-  r = sqrt(pow(lightPos[0] - i.position[0], 2) + pow(lightPos[1] - i.position[1], 2) + pow(lightPos[2] - i.position[2], 2));
-  float A;
-  A = 4 * M_PI * pow(r, 2);
-  vec3 B;
-  B = lightColor / A;
-  vec4 nh, rh;
-  nh = triangles[i. triangleIndex]. normal;
-  rh = i.position - lightPos;
-
-  vec3 D;
-  D
-  return lightColor;
 }
