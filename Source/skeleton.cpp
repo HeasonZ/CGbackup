@@ -20,8 +20,8 @@ using glm::mat4;
 /* ----------------------------------------------------------------------------*/
 /* FUNCTIONS                                                                   */
 
-void Update(vec4 &cameraPos, float &yaw, mat3 &R);
-void Draw(screen* screen, const vector<Triangle>& triangles, Intersection& closestIntersection, vec4 &cameraPos, mat3 &R);
+void Update(vec4 &cameraPos, float &yaw, mat3 &R, vec4 &lightPos);
+void Draw(screen* screen, const vector<Triangle>& triangles, Intersection& closestIntersection, vec4 &cameraPos, mat3 &R, vec4 &lightPos);
 bool ClosestIntersection(vec4 start,
   vec4 dir,
   const vector<Triangle>& triangles,
@@ -33,6 +33,7 @@ int main( int argc, char* argv[] )
   vector<Triangle> triangles;
   LoadTestModel( triangles );
   vec4 cameraPos( 0, 0, -2, 1.0);
+  vec4 lightPos( 0, -0.5, -0.7, 1.0 );
   float yaw = 0.0; // store the angle of the angle.
   mat3 R;
   screen *screen = InitializeSDL( SCREEN_WIDTH, SCREEN_HEIGHT, FULLSCREEN_MODE );
@@ -40,9 +41,9 @@ int main( int argc, char* argv[] )
   while( NoQuitMessageSDL() )
     {
       // cameraPos.z = cameraPos.z + 0.01;
-      Update(cameraPos, yaw, R);
+      Update(cameraPos, yaw, R, lightPos);
       std::cout << "------------ " << a << std::endl;
-      Draw(screen, triangles, closestIntersection, cameraPos, R);
+      Draw(screen, triangles, closestIntersection, cameraPos, R, lightPos);
       SDL_Renderframe(screen);
     }
 
@@ -53,7 +54,7 @@ int main( int argc, char* argv[] )
 }
 
 /*Place your drawing here*/
-void Draw(screen* screen, const vector<Triangle>& triangles, Intersection& closestIntersection, vec4 &cameraPos, mat3 &R)
+void Draw(screen* screen, const vector<Triangle>& triangles, Intersection& closestIntersection, vec4 &cameraPos, mat3 &R, vec4 &lightPos)
 {
   /* Clear buffer */
   memset(screen->buffer, 0, screen->height*screen->width*sizeof(uint32_t));
@@ -67,7 +68,7 @@ void Draw(screen* screen, const vector<Triangle>& triangles, Intersection& close
       direction = vec4(tmpDir[0],tmpDir[1],tmpDir[2],1);
       bool validPixel = ClosestIntersection(cameraPos, direction, triangles, closestIntersection);
       if (validPixel){
-	vec3 D = DirectLight(closestIntersection,triangles[closestIntersection.triangleIndex].normal);
+	vec3 D = DirectLight(closestIntersection,triangles[closestIntersection.triangleIndex].normal, lightPos);
         vec3 colour(triangles[closestIntersection.triangleIndex].color*D);
         PutPixelSDL(screen, x, y, colour);
       }
@@ -77,7 +78,7 @@ void Draw(screen* screen, const vector<Triangle>& triangles, Intersection& close
 }
 
 /*Place updates of parameters here*/
-void Update(vec4 &cameraPos, float &yaw, mat3 &R)
+void Update(vec4 &cameraPos, float &yaw, mat3 &R, vec4 &lightPos)
 {
   static int t = SDL_GetTicks();
   /* Compute frame time */
@@ -103,6 +104,7 @@ void Update(vec4 &cameraPos, float &yaw, mat3 &R)
     Rotation = mat3(cos(yaw), 0.0f, sin(yaw), 0.0f, 1.0f, 0.0f, -sin(yaw), 0.0f,
                   cos(yaw));
     R = Rotation;
+    printf("hello\n");
   }
   if( keystate[SDL_SCANCODE_RIGHT] )
   {
@@ -110,8 +112,35 @@ void Update(vec4 &cameraPos, float &yaw, mat3 &R)
     Rotation = mat3(cos(yaw), 0.0f, sin(yaw), 0.0f, 1.0f, 0.0f, -sin(yaw), 0.0f,
                   cos(yaw));
     R = Rotation;
-  }  
+  }
 
+  if( keystate[SDL_SCANCODE_W] ){
+  lightPos[2] += 0.01;  
+    printf("hello\n");
+  }
+  
+  if (keystate[SDL_SCANCODE_S])
+    {
+      lightPos[2]-= 0.01;
+    }
+
+  if (keystate[SDL_SCANCODE_A])
+    {
+      lightPos[0]+=0.01;      
+    }  
+  if (keystate[SDL_SCANCODE_D])
+    {
+      lightPos[0]-=0.01;      
+    }
+  if (keystate[SDL_SCANCODE_Q])
+    {
+      lightPos[1]+=0.01;      
+    }
+  if (keystate[SDL_SCANCODE_E])
+    {
+      lightPos[1]-=0.01;
+      printf("hello\n");     
+    }       
 }
 
 bool ClosestIntersection(vec4 start,vec4 dir,const vector<Triangle>& triangles,Intersection& closestIntersection)

@@ -20,6 +20,6 @@ struct Intersection
   int triangleIndex;
 };
 
-vec3 DirectLight( const Intersection& i, const vec4 &normal);
-// test
+vec3 DirectLight( const Intersection& i, const vec4 &normal, vec4 &lightPosition);
+
 #endif
