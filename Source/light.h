@@ -21,5 +21,5 @@ struct Intersection
 };
 
 vec3 DirectLight( const Intersection& i, const vec4 &normal);
-
+// test
 #endif
