@@ -1,17 +1,20 @@
 #pragma once
 #ifndef LIGHT_H
 #define LIGHT_H
-//#include <iostream>
+
+// #include <iostream>
 #include <glm/glm.hpp>
 #include <SDL.h>
+#include <vector>
 //#include "SDLauxiliary.h"
-//#include "TestModelH.h"
-//#include <stdint.h>
+// #include "TestModelH.h"
+// #include <stdint.h>
 //#include "limits"
-//#include "light.h"
 
+#define pi 3.1415926
 using glm::vec3;
 using glm::vec4;
+using std::vector;
 
 struct Intersection
 {
@@ -20,6 +23,5 @@ struct Intersection
   int triangleIndex;
 };
 
-vec3 DirectLight( const Intersection& i, const vec4 &normal, vec4 &lightPosition);
 
 #endif
